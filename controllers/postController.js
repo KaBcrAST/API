@@ -1,3 +1,5 @@
+const express = require('express');
+const axios = require('axios');
 const Post = require('../models/postModel');
 
 // Créer un post

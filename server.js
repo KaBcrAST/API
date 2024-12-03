@@ -9,7 +9,10 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 
-// Connect to DB
+// Middleware pour gérer les erreurs d'authentification
+const { checkJwt } = require('./middleware/checkJwt');
+
+// Connecter à la base de données
 connectDB();
 
 // Swagger configuration
@@ -21,17 +24,30 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Documentation de l\'API pour le projet simple',
     },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
   },
-  apis: ['./routes/*.js'],
+  apis: ['./routes/*.js'], // L'option 'apis' doit inclure le fichier où sont définies les routes
 };
+
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Use Routes
+// Routes de l'API
 app.use('/api/posts', postRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/protected-route', checkJwt, (req, res) => {
+  res.send('This is a protected route');
+});
 
-// Start the server
+// Démarrer le serveur
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
