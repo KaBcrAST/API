@@ -1,75 +1,78 @@
 const axios = require('axios');
-const Profile = require('../models/profileModel');
+const Profile = require('../models/profileModel'); // Pour enregistrer ou récupérer la visibilité
 require('dotenv').config();
 
 /**
- * Fonction pour obtenir un profil utilisateur ou en créer un s'il n'existe pas
+ * Récupérer les informations de l'utilisateur via Microsoft Graph
  * @param {Request} req 
  * @param {Response} res 
  */
-const getOrCreateProfile = async (req, res) => {
-  const { userId } = req.params;
+const getUserInfo = async (req, res) => {
   const accessToken = req.headers.authorization.split(' ')[1];  // Récupérer l'access token depuis l'en-tête
 
   try {
-    // Vérifier si le profil existe déjà dans notre base de données
-    let profile = await Profile.findOne({ userId });
+    // Récupérer les données de l'utilisateur via Microsoft Graph API
+    const graphResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const userProfile = graphResponse.data;
+
+    // Vérifier si un profil utilisateur existe dans la base de données
+    let profile = await Profile.findOne({ userId: userProfile.id });
 
     if (!profile) {
-      // Si aucun profil, récupérer les données de l'utilisateur via Microsoft Graph API
-      const graphResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      const userProfile = graphResponse.data;
-
-      // Créer un nouveau profil dans la base de données avec les données de Microsoft Graph
+      // Créer un profil de base avec les informations récupérées, mais sans biographie, seulement avec le nom et la visibilité (par défaut public)
       profile = new Profile({
-        userId,
+        userId: userProfile.id,
         displayName: userProfile.displayName,
-        bio: userProfile.jobTitle || 'No bio available', // Utilisation de jobTitle comme bio
+        visibility: 'public',  // La visibilité par défaut est publique
       });
-      await profile.save();  // Sauvegarder le profil dans la base de données
+      await profile.save();
     }
 
-    // Retourner le profil existant ou nouvellement créé
-    res.status(200).json(profile);
+    // Retourner les informations de l'utilisateur et la visibilité
+    res.status(200).json({ ...userProfile, visibility: profile.visibility });
   } catch (error) {
-    console.error('Error while fetching profile:', error);
-    res.status(500).json({ message: 'Error while fetching profile', error });
+    console.error('Error while fetching user info:', error);
+    res.status(500).json({ message: 'Error while fetching user info', error });
   }
 };
 
 /**
- * Fonction pour créer un profil utilisateur
+ * Mettre à jour la visibilité du profil
  * @param {Request} req 
  * @param {Response} res 
  */
-const createProfile = async (req, res) => {
-  const { userId, displayName, bio } = req.body;
-  
-  try {
-    // Vérifier si un profil existe déjà pour cet utilisateur
-    let profile = await Profile.findOne({ userId });
+const updateProfileVisibility = async (req, res) => {
+  const { visibility } = req.body;  // Nouvelle visibilité : 'public' ou 'private'
 
-    if (profile) {
-      return res.status(400).json({ message: 'Profile already exists' });
+  if (!['public', 'private'].includes(visibility)) {
+    return res.status(400).json({ message: 'Invalid visibility option' });
+  }
+
+  try {
+    // Vérifier si un profil existe pour cet utilisateur
+    const profile = await Profile.findOne({ userId: req.user.userId });
+
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Créer un nouveau profil
-    profile = new Profile({ userId, displayName, bio });
+    // Mettre à jour la visibilité
+    profile.visibility = visibility;
     await profile.save();
 
-    res.status(201).json(profile);
+    res.status(200).json({ message: 'Profile visibility updated successfully', profile });
   } catch (error) {
-    console.error('Error while creating profile:', error);
-    res.status(500).json({ message: 'Error while creating profile', error });
+    console.error('Error while updating profile visibility:', error);
+    res.status(500).json({ message: 'Error while updating profile visibility', error });
   }
 };
 
 module.exports = {
-  getOrCreateProfile,
-  createProfile,
+  getUserInfo,
+  updateProfileVisibility,
 };

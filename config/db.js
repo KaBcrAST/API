@@ -1,17 +1,22 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+const dotenv = require('dotenv');
 
-const connectDB = async () => {
+// Charger les variables d'environnement
+dotenv.config();
+
+// Fonction pour se connecter à MongoDB
+const connectDb = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    const conn = await mongoose.connect(process.env.COSMOS_DB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('MongoDB connected');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1); // Arrêter le processus si la connexion échoue
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (err) {
+    console.error(`Error connecting to MongoDB: ${err.message}`);
+    process.exit(1); // Quitte le processus si la connexion échoue
   }
 };
 
-module.exports = connectDB;
+// Exporter la fonction de connexion
+module.exports = connectDb;

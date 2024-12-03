@@ -1,19 +1,38 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const postRoutes = require('./routes/postRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+const cors = require('cors'); // Importer le middleware CORS
 require('dotenv').config();
 
 const app = express();
 app.use(express.json());
+
+// Configurer le middleware CORS pour autoriser les requêtes provenant de http://localhost:3000
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+}));
 
 // Middleware pour gérer les erreurs d'authentification
 const { checkJwt } = require('./middleware/checkJwt');
 
 // Connecter à la base de données
 connectDB();
+
+// Connecter à la base de données avec mongoose
+const mongoUri = 'mongodb://cosmosdb-mongo-prd:I475BTouZc9EF8LkkiJlKWFTqa0iEqQvuSfh4BqAJLnD0CVXrOxcHrarPY38dKL0bxKJoTB2k8DIACDby2hYhw==@cosmosdb-mongo-prd.mongo.cosmos.azure.com:10255/media_db?ssl=true&retrywrites=false';
+
+mongoose.connect(mongoUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error('MongoDB connection error:', err));
 
 // Swagger configuration
 const swaggerOptions = {
@@ -43,6 +62,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Routes de l'API
 app.use('/api/posts', postRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api', postRoutes);
 app.use('/protected-route', checkJwt, (req, res) => {
   res.send('This is a protected route');
 });
