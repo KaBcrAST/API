@@ -3,9 +3,25 @@ const Profile = require('../models/profileModel'); // Utiliser le modèle Profil
 
 // Créer un post
 const createPost = async (req, res) => {
-  const { title, body, authorId, image } = req.body;
+  const { title, body, authorId } = req.body;
+  const file = req.file;
+  let image = null;
+  let video = null;
+
+  if (!file) {
+    return res.status(400).json({ message: 'Un post doit contenir soit une image soit une vidéo.' });
+  }
+
+  if (file.mimetype.startsWith('image/')) {
+    image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+  } else if (file.mimetype.startsWith('video/')) {
+    video = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+  } else {
+    return res.status(400).json({ message: 'Le fichier doit être soit une image soit une vidéo.' });
+  }
+
   try {
-    const post = new Post({ title, body, author_id: authorId, image });
+    const post = new Post({ title, body, author_id: authorId, image, video });
     await post.save();
     res.status(201).json(post);
   } catch (error) {
@@ -23,42 +39,22 @@ const getPosts = async (req, res) => {
   }
 };
 
-// Récupérer tous les noms des auteurs des posts
-const getPostAuthors = async (req, res) => {
+// Récupérer un fichier par nom
+const getFile = async (req, res) => {
   try {
-    const posts = await Post.find().populate('author_id', 'displayName');
-    const authors = posts.map(post => post.author_id.displayName);
-    res.status(200).json(authors);
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération des auteurs des posts', error });
-  }
-};
-
-// Créer un utilisateur à partir des informations de Microsoft Graph
-const createUserFromGraph = async (graphUser) => {
-  try {
-    if (!graphUser.mail) {
-      throw new Error('Email is required');
+    const file = await gfs.files.findOne({ filename: req.params.filename });
+    if (!file) {
+      return res.status(404).json({ message: 'Fichier non trouvé' });
     }
-    let user = await Profile.findOne({ email: graphUser.mail });
-    if (!user) {
-      user = new Profile({
-        displayName: graphUser.displayName,
-        email: graphUser.mail,
-        bio: graphUser.jobTitle,
-      });
-      await user.save();
-    }
-    return user;
+    const readStream = gfs.createReadStream(file.filename);
+    readStream.pipe(res);
   } catch (error) {
-    console.error('Erreur lors de la création de l\'utilisateur à partir de Microsoft Graph', error);
-    throw error;
+    res.status(500).json({ message: 'Erreur lors de la récupération du fichier', error });
   }
 };
 
 module.exports = {
   createPost,
   getPosts,
-  getPostAuthors,
-  createUserFromGraph,
+  getFile,
 };

@@ -1,5 +1,6 @@
 const express = require('express');
-const { createPost, getPosts, getPostAuthors, createUserFromGraph } = require('../controllers/postController');
+const { createPost, getPosts, getFile } = require('../controllers/postController');
+const upload = require('../config/multerConfig');
 const router = express.Router();
 
 /**
@@ -11,7 +12,7 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -21,15 +22,18 @@ const router = express.Router();
  *                 type: string
  *               authorId:
  *                 type: string
- *               image:
+ *               file:
  *                 type: string
+ *                 format: binary
  *     responses:
  *       201:
  *         description: Post créé avec succès
+ *       400:
+ *         description: Un post doit contenir soit une image soit une vidéo.
  *       500:
  *         description: Erreur lors de la création du post
  */
-router.post('/posts', createPost);
+router.post('/posts', upload.single('file'), createPost);
 
 /**
  * @swagger
@@ -47,50 +51,25 @@ router.get('/posts', getPosts);
 
 /**
  * @swagger
- * /post-authors:
+ * /files/{filename}:
  *   get:
- *     summary: Récupérer tous les noms des auteurs des posts
- *     tags: [Posts]
+ *     summary: Récupérer un fichier par nom
+ *     tags: [Files]
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Nom du fichier
  *     responses:
  *       200:
- *         description: Liste des noms des auteurs
+ *         description: Fichier récupéré avec succès
+ *       404:
+ *         description: Fichier non trouvé
  *       500:
- *         description: Erreur lors de la récupération des auteurs des posts
+ *         description: Erreur lors de la récupération du fichier
  */
-router.get('/post-authors', getPostAuthors);
-
-/**
- * @swagger
- * /create-user-from-graph:
- *   post:
- *     summary: Créer un utilisateur à partir des informations de Microsoft Graph
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               mail:
- *                 type: string
- *               displayName:
- *                 type: string
- *               jobTitle:
- *                 type: string
- *     responses:
- *       201:
- *         description: Utilisateur créé avec succès
- *       500:
- *         description: Erreur lors de la création de l'utilisateur
- */
-router.post('/create-user-from-graph', async (req, res) => {
-  try {
-    const user = await createUserFromGraph(req.body);
-    res.status(201).json(user);
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la création de l\'utilisateur à partir de Microsoft Graph', error });
-  }
-});
+router.get('/files/:filename', getFile);
 
 module.exports = router;
