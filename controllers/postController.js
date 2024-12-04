@@ -37,6 +37,9 @@ const getPostAuthors = async (req, res) => {
 // Créer un utilisateur à partir des informations de Microsoft Graph
 const createUserFromGraph = async (graphUser) => {
   try {
+    if (!graphUser.mail) {
+      throw new Error('Email is required');
+    }
     let user = await Profile.findOne({ email: graphUser.mail });
     if (!user) {
       user = new Profile({
