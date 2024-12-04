@@ -15,7 +15,7 @@ app.use(cors({
 }));
 
 // Connecter à la base de données avec mongoose
-const mongoUri = 'mongodb://cosmosdb-mongo-prd:I475BTouZc9EF8LkkiJlKWFTqa0iEqQvuSfh4BqAJLnD0CVXrOxcHrarPY38dKL0bxKJoTB2k8DIACDby2hYhw==@cosmosdb-mongo-prd.mongo.cosmos.azure.com:10255/media_db?ssl=true&retrywrites=false';
+const mongoUri = process.env.COSMOS_DB_URI;
 
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
@@ -23,12 +23,6 @@ mongoose.connect(mongoUri, {
 })
 .then(() => {
   console.log('MongoDB connected');
-
-  // Démarrer le serveur après la connexion à la base de données
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
 })
 .catch((err) => console.error('MongoDB connection error:', err));
 
@@ -38,3 +32,9 @@ app.use('/api', profileRoutes);
 
 // Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
+// Démarrer le serveur
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Profile = require('../models/profileModel'); // Pour enregistrer ou récupérer la visibilité
+const Post = require('../models/postModel');
 require('dotenv').config();
 
 /**
@@ -72,7 +73,23 @@ const updateProfileVisibility = async (req, res) => {
   }
 };
 
+// Récupérer tous les posts d'un utilisateur
+const getUserPosts = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const posts = await Post.find({ author_id: userId });
+    if (!posts.length) {
+      return res.status(404).json({ message: 'Aucun post trouvé pour cet utilisateur' });
+    }
+    res.status(200).json(posts);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération des posts', error });
+  }
+};
+
 module.exports = {
   getUserInfo,
   updateProfileVisibility,
+  getUserPosts,
 };

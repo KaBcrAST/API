@@ -1,6 +1,7 @@
 const express = require('express');
-const { createPost, getPosts, getFile } = require('../controllers/postController');
+const { createPost, getPosts, getFile, updatePost, deletePost } = require('../controllers/postController');
 const upload = require('../config/multerConfig');
+const { checkJwt } = require('../middleware/checkJwt');
 const router = express.Router();
 
 /**
@@ -71,5 +72,62 @@ router.get('/posts', getPosts);
  *         description: Erreur lors de la récupération du fichier
  */
 router.get('/files/:filename', getFile);
+
+/**
+ * @swagger
+ * /posts/{postId}:
+ *   put:
+ *     summary: Modifier un post
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID du post
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               body:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Post modifié avec succès
+ *       404:
+ *         description: Post non trouvé
+ *       500:
+ *         description: Erreur lors de la modification du post
+ */
+router.put('/posts/:postId', updatePost);
+
+/**
+ * @swagger
+ * /posts/{postId}:
+ *   delete:
+ *     summary: Supprimer un post
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID du post
+ *     responses:
+ *       200:
+ *         description: Post supprimé avec succès
+ *       404:
+ *         description: Post non trouvé
+ *       500:
+ *         description: Erreur lors de la suppression du post
+ */
+router.delete('/posts/:postId',deletePost);
 
 module.exports = router;

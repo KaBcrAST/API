@@ -1,6 +1,7 @@
 const express = require('express');
+const axios = require('axios');
 const { checkJwt } = require('../middleware/checkJwt');
-const { getUserInfo, updateProfileVisibility } = require('../controllers/profilController');
+const { getUserInfo, updateProfileVisibility, getUserPosts } = require('../controllers/profilController');
 const Profile = require('../models/profileModel');
 
 const router = express.Router();
@@ -91,6 +92,43 @@ router.put('/profiles/:email', async (req, res) => {
     res.status(200).json(profile);
   } catch (error) {
     res.status(500).json({ message: 'Erreur lors de la mise à jour du profil', error });
+  }
+});
+
+/**
+ * @swagger
+ * /profile/{userId}/posts:
+ *   get:
+ *     summary: Récupérer tous les posts d'un utilisateur
+ *     tags: [Profile]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID de l'utilisateur
+ *     responses:
+ *       200:
+ *         description: Liste des posts de l'utilisateur
+ *       404:
+ *         description: Utilisateur non trouvé
+ *       500:
+ *         description: Erreur lors de la récupération des posts
+ */
+router.get('/profile/:userId/posts', getUserPosts);
+
+router.get('/user-id', checkJwt, async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+    const response = await axios.get('https://graph.microsoft.com/v1.0/me', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    res.status(200).json({ userId: response.data.id });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération de l\'ID de l\'utilisateur', error: error.message });
   }
 });
 

@@ -14,6 +14,7 @@ async function checkJwt(req, res, next) {
   }
 
   const token = authHeader.split(' ')[1];
+  console.log('Token:', token); // Ajoutez ce log pour vérifier le token
 
   try {
     const decoded = jwt.decode(token, { complete: true });
@@ -29,7 +30,10 @@ async function checkJwt(req, res, next) {
       issuer: `https://login.microsoftonline.com/${process.env.TENANT_ID}/v2.0`,
     });
 
+    console.log('Verified Token:', verifiedToken); // Ajoutez ce log pour vérifier le token vérifié
+
     req.user = verifiedToken;
+    req.userId = verifiedToken.oid; // Ajoutez l'ID de l'utilisateur à la requête
     next();
   } catch (err) {
     console.error('JWT validation error:', err.message);
@@ -37,4 +41,4 @@ async function checkJwt(req, res, next) {
   }
 }
 
-module.exports = { checkJwt };  // Assurez-vous que vous exportez checkJwt
+module.exports = { checkJwt };
